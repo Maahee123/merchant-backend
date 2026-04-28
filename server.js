@@ -339,8 +339,7 @@ app.post('/upload/image', upload.single('image'), (req, res) => {
     return res.status(400).json({ error: 'Image is required' });
   }
 
-  const host = req.get('host');
-const imageUrl = `https://${host}/uploads/${req.file.filename}`;
+  const imageUrl = `https://merchant-backend-production-591b.up.railway.app/uploads/${req.file.filename}`;
 
   return res.json({ imageUrl });
 });
