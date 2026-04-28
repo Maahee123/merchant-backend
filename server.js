@@ -11,8 +11,7 @@ const cron = require('node-cron');
 
 const app = express();
 
-const PORT = 3000;
-const HOST_IP = process.env.HOST_IP || '192.168.31.164';
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -102,9 +101,7 @@ function getIndiaMinutes() {
 
 function timeToMinutes(value) {
   const [hours, minutes] = String(value || '00:00').split(':').map(Number);
-
   if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
-
   return hours * 60 + minutes;
 }
 
@@ -113,9 +110,7 @@ function isWithinTime(startTime, endTime) {
   const start = timeToMinutes(startTime || '00:00');
   const end = timeToMinutes(endTime || '23:59');
 
-  if (start <= end) {
-    return now >= start && now <= end;
-  }
+  if (start <= end) return now >= start && now <= end;
 
   return now >= start || now <= end;
 }
@@ -157,8 +152,7 @@ function buildStats(entries) {
   entries.forEach((entry) => {
     const productName = entry.product || 'Unknown';
     productSummary[productName] =
-      (productSummary[productName] || 0) +
-      extractQuantityNumber(entry.quantity);
+      (productSummary[productName] || 0) + extractQuantityNumber(entry.quantity);
   });
 
   return {
@@ -177,10 +171,7 @@ function getNextProductNumber(products) {
 
   products.forEach((product) => {
     const num = Number(product.product_number);
-
-    if (!Number.isNaN(num) && num >= 0 && num <= 99) {
-      used.add(num);
-    }
+    if (!Number.isNaN(num) && num >= 0 && num <= 99) used.add(num);
   });
 
   for (let i = 0; i <= 99; i += 1) {
@@ -492,9 +483,7 @@ app.post('/api/entries', (req, res) => {
     name: req.body.name || req.body.merchant_name || '',
     product: req.body.product || matchedProduct?.name || '',
     product_number:
-      productNumber !== null
-        ? productNumber
-        : matchedProduct?.product_number ?? '',
+      productNumber !== null ? productNumber : matchedProduct?.product_number ?? '',
     quantity: req.body.quantity || '',
     time: req.body.time || getIndiaTime(),
     raw_message: req.body.raw_message || '',
@@ -527,9 +516,7 @@ app.get('/entries/merchant/:name', (req, res) => {
   const name = String(req.params.name || '').toLowerCase();
 
   const filtered = entries.filter((entry) =>
-    String(entry.merchant_name || entry.name || '')
-      .toLowerCase()
-      .includes(name)
+    String(entry.merchant_name || entry.name || '').toLowerCase().includes(name)
   );
 
   return res.json({
@@ -569,10 +556,7 @@ app.post('/webhook', (req, res) => {
   }
 
   if (merchantConfig.status !== 'active') {
-    return twilioReply(
-      res,
-      'Your account is deactivated. Please contact admin.'
-    );
+    return twilioReply(res, 'Your account is deactivated. Please contact admin.');
   }
 
   const allowed = isWithinTime(
@@ -581,19 +565,13 @@ app.post('/webhook', (req, res) => {
   );
 
   if (!allowed) {
-    return twilioReply(
-      res,
-      'Your time period was completed. Please contact admin.'
-    );
+    return twilioReply(res, 'Your time period was completed. Please contact admin.');
   }
 
   const parsed = parseWhatsappMessage(message);
 
   if (!parsed.name && !parsed.product && !parsed.quantity && !parsed.time) {
-    return twilioReply(
-      res,
-      'Invalid format. Please send Name, Product, Quantity.'
-    );
+    return twilioReply(res, 'Invalid format. Please send Name, Product, Quantity.');
   }
 
   const products = readJson(files.products, []);
@@ -688,9 +666,7 @@ app.put('/numbers/:id/status', (req, res) => {
   const id = String(req.params.id);
 
   numbers = numbers.map((item) =>
-    String(item.id) === id
-      ? { ...item, status: req.body.status || item.status }
-      : item
+    String(item.id) === id ? { ...item, status: req.body.status || item.status } : item
   );
 
   writeJson(files.numbers, numbers);
@@ -716,12 +692,7 @@ app.get('/tracked-merchants', (req, res) => {
 
 app.post('/tracked-merchants', (req, res) => {
   const merchants = readJson(files.merchants, []);
-  const {
-    merchant_name,
-    merchant_number,
-    tracking_start_time,
-    tracking_end_time,
-  } = req.body;
+  const { merchant_name, merchant_number, tracking_start_time, tracking_end_time } = req.body;
 
   if (!merchant_name || !merchant_number) {
     return res.status(400).json({
@@ -750,9 +721,7 @@ app.put('/tracked-merchants/:id/status', (req, res) => {
   const id = String(req.params.id);
 
   merchants = merchants.map((item) =>
-    String(item.id) === id
-      ? { ...item, status: req.body.status || item.status }
-      : item
+    String(item.id) === id ? { ...item, status: req.body.status || item.status } : item
   );
 
   writeJson(files.merchants, merchants);
@@ -768,10 +737,8 @@ app.put('/tracked-merchants/:id/schedule', (req, res) => {
     String(item.id) === id
       ? {
           ...item,
-          tracking_start_time:
-            req.body.tracking_start_time || item.tracking_start_time,
-          tracking_end_time:
-            req.body.tracking_end_time || item.tracking_end_time,
+          tracking_start_time: req.body.tracking_start_time || item.tracking_start_time,
+          tracking_end_time: req.body.tracking_end_time || item.tracking_end_time,
         }
       : item
   );
@@ -825,9 +792,7 @@ app.get('/reports/product/:number/daily', (req, res) => {
   const entries = readJson(files.entries, []);
   const number = Number(req.params.number);
 
-  const filtered = entries.filter(
-    (entry) => Number(entry.product_number) === number
-  );
+  const filtered = entries.filter((entry) => Number(entry.product_number) === number);
 
   const dailyMap = {};
 
@@ -848,9 +813,7 @@ app.get('/reports/product/:number/daily', (req, res) => {
     dailyMap[date].data.push(entry);
   });
 
-  const daily = Object.values(dailyMap).sort((a, b) =>
-    b.date.localeCompare(a.date)
-  );
+  const daily = Object.values(dailyMap).sort((a, b) => b.date.localeCompare(a.date));
 
   return res.json({
     productNumber: number,
@@ -1010,4 +973,6 @@ app.use((req, res) => {
 
 /* ---------------- SERVER ---------------- */
 
-app.listen(PORT, '0.0.0.0');
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
